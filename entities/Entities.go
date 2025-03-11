@@ -47,6 +47,28 @@ type Person struct {
 	Likes        []int  `json:"-"`
 }
 
+type RegisterPerson struct {
+	Name     string `json:"name"`
+	Tag      string `json:"tag"`
+	Password string `json:"password"`
+}
+
+type LoginPerson struct {
+	Tag      string `json:"tag"`
+	Password string `json:"password"`
+}
+
+type RefreshStruct struct {
+	AccessToken  string `json:"access_token"`
+	RefreshToken string `json:"refresh_token"`
+}
+
+type NewsStruct struct {
+	UserId   int `json:"user_id"`
+	PageSize int `json:"page_size"`
+	PageNum  int `json:"page_num"`
+}
+
 type SearchStruct struct {
 	UserId            int           `json:"user_id"`
 	SearchFieldString string        `json:"search_field_string"`
