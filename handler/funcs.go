@@ -58,7 +58,7 @@ var articles []entities.Article = []entities.Article{
 		AuthorName:   "Patrick Bateman",
 		AuthorTag:    "patrickstar",
 		AuthorAvatar: "/avatars/patrickbateman.jpeg",
-		Date:         time.Date(2009, time.November, 10, 23, 0, 0, 0, time.UTC).Unix(),
+		Date:         time.Date(2009, time.November, 10, 23, 0, 0, 0, time.Local).Unix(),
 		CoordsN:      40.730610,
 		CoordsW:      -73.935242,
 		Brief:        "Had lots of fun there",
@@ -146,6 +146,8 @@ func (h *Handler) getNews(c *gin.Context) {
 	var input entities.NewsStruct
 	_ = c.BindJSON(&input)
 
+	fmt.Println("! ", input.UserId)
+
 	if (input.PageNum-1)*input.PageSize > len(articles)-1 {
 		ret := []entities.Article{}
 		c.JSON(http.StatusOK, map[string]interface{}{
@@ -155,10 +157,6 @@ func (h *Handler) getNews(c *gin.Context) {
 	}
 
 	ret := articles[(input.PageNum-1)*input.PageSize : min(input.PageNum*input.PageSize, len(articles))]
-
-	for _, article := range ret {
-		fmt.Println(article)
-	}
 
 	c.JSON(http.StatusOK, map[string]interface{}{
 		"articles": ret,
@@ -197,7 +195,6 @@ func (h *Handler) getLikedPosts(c *gin.Context) {
 			ret = append(ret, articles[i])
 		}
 
-		fmt.Println("Liked: ", input.ID, len(ret))
 		c.JSON(http.StatusOK, map[string]interface{}{
 			"articles": ret,
 		})
@@ -219,7 +216,6 @@ func (h *Handler) getUserPosts(c *gin.Context) {
 			}
 		}
 
-		fmt.Println(input.ID, len(ret))
 		c.JSON(http.StatusOK, map[string]interface{}{
 			"articles": ret,
 		})
@@ -233,7 +229,6 @@ func (h *Handler) getUserInfo(c *gin.Context) {
 	_ = c.BindJSON(&input)
 
 	if input.ID < len(users) {
-		fmt.Printf("User ID: %d\n", input.ID)
 		c.JSON(http.StatusOK, map[string]interface{}{
 			"user": users[input.ID],
 		})
@@ -265,7 +260,9 @@ func (h *Handler) login(c *gin.Context) {
 	var input entities.LoginPerson
 	_ = c.BindJSON(&input)
 
-	var ind int
+	fmt.Println(input)
+
+	var ind = -1
 
 	for i, person := range users {
 		if person.Tag == input.Tag {
@@ -274,11 +271,16 @@ func (h *Handler) login(c *gin.Context) {
 		}
 	}
 
-	c.JSON(http.StatusOK, map[string]interface{}{
-		"id":           ind,
-		"accessToken":  "lalolilelo",
-		"refreshToken": "lalolilelo",
-	})
+	if ind != -1 {
+		fmt.Println(ind)
+		c.JSON(http.StatusOK, map[string]interface{}{
+			"id":           ind,
+			"accessToken":  "lalolilelo",
+			"refreshToken": "lalolilelo",
+		})
+	} else {
+		c.JSON(http.StatusBadRequest, map[string]interface{}{})
+	}
 }
 
 func (h *Handler) refresh(c *gin.Context) {
@@ -297,7 +299,6 @@ func (h *Handler) createNewArticle(c *gin.Context) {
 	form, err := c.MultipartForm()
 
 	if err != nil {
-		fmt.Println(err.Error())
 		c.JSON(http.StatusBadRequest, gin.H{"error": "Cannot parse multipart form"})
 		return
 	}
@@ -309,25 +310,20 @@ func (h *Handler) createNewArticle(c *gin.Context) {
 	fileBytes, err := io.ReadAll(jsonData)
 
 	if err := json.Unmarshal([]byte(fileBytes), &articleData); err != nil {
-		fmt.Println(err.Error())
 		c.JSON(http.StatusBadRequest, gin.H{"error": "Invalid JSON"})
 		return
 	}
-
 	articleData.ID = len(articles)
 
 	if articleData.AuthorID < len(users) {
-		fmt.Printf("User ID for article: %d\n", articleData.AuthorID)
 		articleData.AuthorName = users[articleData.AuthorID].Name
 		articleData.AuthorTag = users[articleData.AuthorID].Tag
 		articleData.AuthorAvatar = users[articleData.AuthorID].Avatar
 	} else {
 		c.JSON(http.StatusBadRequest, map[string]interface{}{})
 	}
-	fmt.Println("AAA")
 
 	files := form.File["images"]
-	fmt.Println(files)
 	for _, file := range files {
 		filePath := filepath.Join("./images", file.Filename)
 		articleData.Images = append(articleData.Images, filepath.Join("/images", file.Filename))
@@ -335,7 +331,6 @@ func (h *Handler) createNewArticle(c *gin.Context) {
 			c.JSON(http.StatusInternalServerError, gin.H{"error": "Cannot save file"})
 			return
 		}
-		fmt.Println("Uploaded:", filePath)
 	}
 
 	articles = append(articles, articleData)
@@ -346,28 +341,17 @@ func (h *Handler) createNewArticle(c *gin.Context) {
 func (h *Handler) changeSettings(c *gin.Context) {
 	var userData entities.Person
 
-	//form, err := c.MultipartForm()
-
-	//if err != nil {
-	//	fmt.Println(err.Error())
-	//	c.JSON(http.StatusBadRequest, gin.H{"error": "Cannot parse multipart form"})
-	//	return
-	//}
-
-	//jsonFile := form.File["json"]
 	jsonFile, _ := c.FormFile("json")
 	jsonData, _ := jsonFile.Open()
 	defer jsonData.Close()
 	fileBytes, _ := io.ReadAll(jsonData)
 
 	if err := json.Unmarshal(fileBytes, &userData); err != nil {
-		fmt.Println(err.Error())
 		c.JSON(http.StatusBadRequest, gin.H{"error": "Invalid JSON"})
 		return
 	}
 
 	if userData.Id < len(users) {
-		fmt.Printf("User ID for settings change: %d\n", userData.Id)
 		users[userData.Id].Tag = userData.Tag
 		users[userData.Id].Status = userData.Status
 		users[userData.Id].Name = userData.Name
@@ -383,7 +367,6 @@ func (h *Handler) changeSettings(c *gin.Context) {
 		c.JSON(http.StatusInternalServerError, gin.H{"error": "Cannot save file"})
 		return
 	}
-	fmt.Println("Uploaded:", filePath)
 
 	for i := range articles {
 		var article = &articles[i]
@@ -391,9 +374,27 @@ func (h *Handler) changeSettings(c *gin.Context) {
 			article.AuthorName = userData.Name
 			article.AuthorTag = userData.Tag
 			article.AuthorAvatar = users[userData.Id].Avatar
-			fmt.Println(article)
 		}
 	}
 
 	c.JSON(http.StatusOK, map[string]interface{}{})
+}
+
+func (h *Handler) getSettings(c *gin.Context) {
+	var input entities.PersonIDStruct
+	_ = c.BindJSON(&input)
+	if input.ID < len(users) {
+		var ret = entities.Settings{}
+		ret.Id = users[input.ID].Id
+		ret.Name = users[input.ID].Name
+		ret.Tag = users[input.ID].Tag
+		ret.Status = users[input.ID].Status
+		ret.Avatar = users[input.ID].Avatar
+
+		c.JSON(http.StatusOK, map[string]interface{}{
+			"user": ret,
+		})
+	} else {
+		c.JSON(http.StatusBadRequest, map[string]interface{}{})
+	}
 }

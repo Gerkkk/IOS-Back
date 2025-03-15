@@ -47,6 +47,14 @@ type Person struct {
 	Likes        []int  `json:"-"`
 }
 
+type Settings struct {
+	Id     int    `json:"id"`
+	Name   string `json:"name"`
+	Tag    string `json:"tag"`
+	Status string `json:"status"`
+	Avatar string `json:"avatar"`
+}
+
 type RegisterPerson struct {
 	Name     string `json:"name"`
 	Tag      string `json:"tag"`

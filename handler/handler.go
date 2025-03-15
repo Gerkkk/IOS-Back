@@ -36,7 +36,7 @@ func (h *Handler) InitRoutes() *gin.Engine {
 		userActions.POST("/get-user-info", h.getUserInfo)
 		userActions.POST("/create-new-article", h.createNewArticle)
 		userActions.POST("/change-settings", h.changeSettings)
-		userActions.POST("/get-settings", h.getUserInfo)
+		userActions.POST("/get-settings", h.getSettings)
 	}
 
 	return router
